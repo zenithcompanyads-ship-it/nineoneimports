@@ -321,6 +321,76 @@
   .sp-meta{font-size:11.5px; color:var(--gray-400); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .sp-meta .sp-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#25d366;margin-right:5px;vertical-align:middle;box-shadow:0 0 6px #25d366;}
 
+  /* ─── ENTRY MODAL POPUP ─── */
+  .entry-overlay{
+    position:fixed; inset:0; z-index:500;
+    background:rgba(0,0,0,.78);
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none;
+    transition:opacity .35s ease;
+  }
+  .entry-overlay.show{opacity:1; pointer-events:auto;}
+  .entry-modal{
+    position:relative;
+    width:100%; max-width:480px;
+    background:radial-gradient(ellipse 120% 100% at 50% 0%,rgba(108,225,59,.14) 0%,transparent 55%),#0d0d0d;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:22px;
+    padding:44px 36px 36px;
+    text-align:center;
+    box-shadow:0 30px 80px rgba(0,0,0,.6);
+    transform:translateY(24px) scale(.97);
+    transition:transform .4s cubic-bezier(.2,.8,.2,1);
+  }
+  .entry-overlay.show .entry-modal{transform:translateY(0) scale(1);}
+  .entry-close{
+    position:absolute; top:16px; right:16px;
+    width:34px; height:34px; border-radius:50%;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    color:var(--gray-300); font-size:16px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:all .2s;
+  }
+  .entry-close:hover{background:rgba(255,255,255,.12); color:#fff;}
+  .entry-badge{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12.5px; font-weight:700; letter-spacing:.3px;
+    color:var(--orange);
+    background:rgba(108,225,59,.08);
+    border:1px solid rgba(108,225,59,.3);
+    padding:7px 16px; border-radius:20px; margin-bottom:22px;
+  }
+  .entry-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:pulse-green 1.6s infinite;}
+  .entry-modal h3{
+    font-size:clamp(24px,5vw,30px); font-weight:800; letter-spacing:-.8px;
+    line-height:1.18; margin-bottom:16px;
+  }
+  .entry-modal h3 .accent{color:var(--orange);}
+  .entry-modal p.entry-sub{
+    font-size:15px; color:var(--gray-400); line-height:1.6;
+    max-width:380px; margin:0 auto 28px;
+  }
+  .entry-modal .btn-primary{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; font-size:15.5px; padding:16px 20px;
+  }
+  .entry-checks{
+    display:flex; align-items:center; justify-content:center; gap:22px;
+    margin-top:18px; flex-wrap:wrap;
+  }
+  .entry-checks span{
+    font-size:12.5px; color:var(--gray-400);
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .entry-checks span::before{content:"✓"; color:#25d366; font-weight:700;}
+  .entry-note{font-size:12px; color:var(--gray-600); margin-top:16px;}
+  @media(max-width:480px){
+    .entry-modal{padding:36px 22px 28px; border-radius:18px;}
+    .entry-checks{gap:14px 18px;}
+  }
+
   /* ─── RESPONSIVE ─── */
   @media(max-width:1024px){
     .prod-grid{grid-template-columns:repeat(2,1fr);}
@@ -455,6 +525,26 @@
         Entrar no grupo
       </a>
     </div>
+  </div>
+</div>
+
+<!-- ─── ENTRY MODAL POPUP ─── -->
+<div class="entry-overlay" id="entryOverlay">
+  <div class="entry-modal">
+    <button class="entry-close" id="entryClose" aria-label="Fechar">✕</button>
+    <div class="entry-badge"><span class="dot"></span>Vagas abertas hoje</div>
+    <h3>Ainda dá tempo de entrar na <span class="accent">comunidade</span>.</h3>
+    <p class="entry-sub">
+      As melhores oportunidades Apple de Sergipe passam primeiro por lá. Entre agora, veja o que tem essa semana e compre com segurança.
+    </p>
+    <a href="https://chat.whatsapp.com/IenrzbAT7LnG1rxWFJk7pV" target="_blank" class="btn-primary" id="entryCta">
+      Acesse a comunidade agora →
+    </a>
+    <div class="entry-checks">
+      <span>É de graça entrar</span>
+      <span>+500 sergipanos dentro</span>
+    </div>
+    <p class="entry-note">Você decide se compra. Sem compromisso.</p>
   </div>
 </div>
 
@@ -832,6 +922,40 @@
 
     // primeiro popup após um pequeno atraso
     setTimeout(cycle, 4000);
+  })();
+
+  // ─── Entry modal popup (abre uma vez por sessão) ───
+  (function(){
+    const overlay = document.getElementById("entryOverlay");
+    const closeBtn = document.getElementById("entryClose");
+    const cta = document.getElementById("entryCta");
+    if (!overlay) return;
+
+    function openModal(){
+      overlay.classList.add("show");
+      document.body.style.overflow = "hidden";
+    }
+    function closeModal(){
+      overlay.classList.remove("show");
+      document.body.style.overflow = "";
+      sessionStorage.setItem("entryModalShown", "1");
+    }
+
+    closeBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    cta.addEventListener("click", () => {
+      if (typeof fbq === "function") fbq("track", "Lead");
+      closeModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModal();
+    });
+
+    if (!sessionStorage.getItem("entryModalShown")) {
+      setTimeout(openModal, 6000);
+    }
   })();
 
 </script>
